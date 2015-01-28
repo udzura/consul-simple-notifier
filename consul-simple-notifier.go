@@ -1,11 +1,11 @@
 package main
 
 import (
-	//"encoding/json"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/pelletier/go-toml"
-	"io/ioutil"
+	//"io/ioutil"
 	"os"
 )
 
@@ -15,21 +15,21 @@ type config struct {
 }
 
 type consulAlert struct {
-	timestamp string
-	node      string
-	serviceId string
-	service   string
-	checkId   string
-	check     string
-	output    string
-	notes     string
+	Timestamp string
+	Node      string
+	ServiceId string
+	Service   string
+	CheckId   string
+	Check     string
+	Output    string
+	Notes     string
 }
 
 func main() {
 	var (
 		configPath string
 		conf       config
-		//input      []consulAlert
+		input      []consulAlert
 	)
 
 	flag.StringVar(&configPath, "c", "/etc/consul-simple-notifier.ini", "Config path")
@@ -46,14 +46,9 @@ func main() {
 	conf.ikachanUrl = parsed.Get("ikachan.url").(string)
 	fmt.Printf("%+v\n", conf)
 
-	in, _ := ioutil.ReadAll(os.Stdin)
-	fmt.Println(string(in))
-
-	/*
-		err = json.NewDecoder(os.Stdin).Decode(&input)
-		if err != nil {
-			panic(err.Error())
-		}
-		fmt.Printf("%+v\n", input)
-	*/
+	err = json.NewDecoder(os.Stdin).Decode(&input)
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Printf("%+v\n", input)
 }

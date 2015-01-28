@@ -1,0 +1,24 @@
+[
+  {
+    "Timestamp": "2015-01-27T20:02:47.04303488+09:00",
+    "Node": "www",
+    "ServiceId": "td_agent_24224",
+    "Service": "td-agent port 24224",
+    "CheckId": "service:td_agent_24224",
+    "Check": "Service td-agent port 24224 check",
+    "Status": "critical",
+    "Output": "Connection refused\n",
+    "Notes": ""
+  },
+  {
+    "Timestamp": "2015-01-27T20:08:17.742559329+09:00",
+    "Node": "www",
+    "ServiceId": "td_agent_procs",
+    "Service": "td-agent processes",
+    "CheckId": "service:td_agent_procs",
+    "Check": "Service td-agent processes check",
+    "Status": "passing",
+    "Output": "PROCS OK: 2 processes with UID = 494 (td-agent)\n",
+    "Notes": ""
+  }
+]

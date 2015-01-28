@@ -67,13 +67,13 @@ func main() {
 	}
 	conf.ikachanUrl = parsed.Get("ikachan.url").(string)
 	conf.channel = parsed.Get("ikachan.channel").(string)
-	logger.Printf("%+v\n", conf)
+	logger.Printf("conf is: %+v\n", conf)
 
 	err = json.NewDecoder(os.Stdin).Decode(&input)
 	if err != nil {
 		panic(err.Error())
 	}
-	logger.Printf("%+v\n", input)
+	logger.Printf("input json is: %+v\n", input)
 
 	for _, content := range input {
 		notifyEmail(conf.emails, content)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -11,6 +12,8 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"strings"
+	"text/template"
 )
 
 type config struct {
@@ -26,16 +29,30 @@ type consulAlert struct {
 	Service   string
 	CheckId   string
 	Check     string
+	Status    string
 	Output    string
 	Notes     string
 }
 
+func (c *consulAlert) TrimmedOutput() string {
+	return strings.TrimSpace(c.Output)
+}
+
 const (
-	version = "0.0.1"
+	version           = "0.0.1"
+	ircBodyTemplate   = "{{.Service}}({{.CheckId}}) is now {{.Status}} on {{.Node}} - {{.TrimmedOutput}}"
+	mailTitleTemplate = "Check {{.CheckId}} is now {{.Status}} on {{.Node}}"
+	mailBodyTemplate  = `
+{{.Service}}({{.CheckId}}) is now {{.Status}}
+On node {{.Node}}
+
+Output is:
+  {{.TrimmedOutput}}
+`
 )
 
 var (
-	logger = log.New(os.Stdout, "[ikachan-proxy] ", log.LstdFlags)
+	logger = log.New(os.Stdout, "[consul-simple-notifier] ", log.LstdFlags)
 )
 
 func main() {
@@ -83,8 +100,18 @@ func main() {
 
 func notifyEmail(recipients []string, content consulAlert) error {
 	for _, address := range recipients {
-		logger.Printf("Sending... %s to %+v\n", address, content)
-		cmd := exec.Command("/bin/mail", "-s", "Alert from consul", address)
+		var titleBuf, bodyBuf bytes.Buffer
+		titleTmpl := template.Must(template.New("emailTitle").Parse(mailTitleTemplate))
+		bodyTmpl := template.Must(template.New("emailBody").Parse(mailBodyTemplate))
+		err := titleTmpl.Execute(&titleBuf, &content)
+		err = bodyTmpl.Execute(&bodyBuf, &content)
+		if err != nil {
+			return err
+		}
+		title := titleBuf.String()
+
+		logger.Printf("Sending... %s to %s\n", title, address)
+		cmd := exec.Command("/bin/mail", "-s", title, address)
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
 			return err
@@ -94,7 +121,7 @@ func notifyEmail(recipients []string, content consulAlert) error {
 			return err
 		}
 
-		fmt.Fprintf(stdin, "This is a sample mail\n%+v", content)
+		fmt.Fprintf(stdin, "This is a sample mail\n%+v", bodyBuf.String())
 		stdin.Close()
 		logger.Printf("Send!\n")
 		cmd.Wait()
@@ -115,8 +142,15 @@ func notifyIkachan(ikachanUrl string, channel string, content consulAlert) error
 		return err
 	}
 
-	message := fmt.Sprintf("This is a sample notification! %s - %s", content.CheckId, content.Output)
-	values.Set("message", message)
+	var bodyBuf bytes.Buffer
+	bodyTmpl := template.Must(template.New("ircBody").Parse(ircBodyTemplate))
+	err = bodyTmpl.Execute(&bodyBuf, &content)
+	if err != nil {
+		return err
+	}
+	body := bodyBuf.String()
+
+	values.Set("message", body)
 
 	logger.Printf("Posted! %+v", values)
 	resp2, err := http.PostForm(noticeUrl, values)

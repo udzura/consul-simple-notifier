@@ -121,7 +121,7 @@ func notifyEmail(recipients []string, content consulAlert) error {
 			return err
 		}
 
-		fmt.Fprintf(stdin, "This is a sample mail\n%+v", bodyBuf.String())
+		fmt.Fprint(stdin, bodyBuf.String())
 		stdin.Close()
 		logger.Printf("Send!\n")
 		cmd.Wait()

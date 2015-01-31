@@ -17,9 +17,10 @@ import (
 )
 
 type config struct {
-	emails     []string
-	ikachanUrl string
-	channel    string
+	emails      []string
+	mailBinPath string
+	ikachanUrl  string
+	channel     string
 }
 
 type consulAlert struct {
@@ -100,10 +101,19 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
+
+	binPath := parsed.Get("email.binpath")
+	if binPath == nil {
+		conf.mailBinPath = "/bin/mail"
+	} else {
+		conf.mailBinPath = binPath.(string)
+	}
+
 	recipients := parsed.Get("email.recipients")
 	for _, address := range recipients.([]interface{}) {
 		conf.emails = append(conf.emails, address.(string))
 	}
+
 	conf.ikachanUrl = parsed.Get("ikachan.url").(string)
 	conf.channel = parsed.Get("ikachan.channel").(string)
 	logger.Printf("conf is: %+v\n", conf)
@@ -115,7 +125,7 @@ func main() {
 	logger.Printf("input json is: %+v\n", input)
 
 	for _, content := range input {
-		err := notifyEmail(conf.emails, content)
+		err := notifyEmail(conf.mailBinPath, conf.emails, content)
 		if err != nil {
 			panic(err)
 		}
@@ -126,7 +136,7 @@ func main() {
 	}
 }
 
-func notifyEmail(recipients []string, content consulAlert) error {
+func notifyEmail(mainBinPath string, recipients []string, content consulAlert) error {
 	for _, address := range recipients {
 		var titleBuf, bodyBuf bytes.Buffer
 		titleTmpl := template.Must(template.New("emailTitle").Parse(mailTitleTemplate))
@@ -139,7 +149,7 @@ func notifyEmail(recipients []string, content consulAlert) error {
 		title := titleBuf.String()
 
 		logger.Printf("Sending... %s to %s\n", title, address)
-		cmd := exec.Command("/bin/mail", "-s", title, address)
+		cmd := exec.Command(mainBinPath, "-s", title, address)
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
 			return err

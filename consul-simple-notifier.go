@@ -125,26 +125,26 @@ func main() {
 	}
 	logger.Printf("input json is: %+v\n", input)
 
-	for _, content := range input {
-		var wg sync.WaitGroup
-		wg.Add((len(conf.emails) + 1))
+	var wg sync.WaitGroup
+	wg.Add((len(conf.emails) + 1) * len(input))
 
-		go func(_wg *sync.WaitGroup, _content *consulAlert) {
+	for _, content := range input {
+		go func(_wg *sync.WaitGroup, _content consulAlert) {
 			for _, address := range conf.emails {
-				err := notifyEmail(conf.mailBinPath, address, _content, _wg)
+				err := notifyEmail(conf.mailBinPath, address, &_content, _wg)
 				if err != nil {
 					panic(err)
 				}
 			}
-		}(&wg, &content)
-		go func(_wg *sync.WaitGroup, _content *consulAlert) {
-			err = notifyIkachan(conf.ikachanUrl, conf.channel, _content, _wg)
+		}(&wg, content)
+		go func(_wg *sync.WaitGroup, _content consulAlert) {
+			err = notifyIkachan(conf.ikachanUrl, conf.channel, &_content, _wg)
 			if err != nil {
 				panic(err)
 			}
-		}(&wg, &content)
-		wg.Wait()
+		}(&wg, content)
 	}
+	wg.Wait()
 }
 
 func notifyEmail(mainBinPath, address string, content *consulAlert, wg *sync.WaitGroup) error {

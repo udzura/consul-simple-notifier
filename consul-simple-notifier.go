@@ -61,7 +61,7 @@ const (
 
 var (
 	ircBodyTemplate = setIrcMode(ircBold) +
-		"{{.Service}}({{.CheckId}}) is now {{.StatusString}}" +
+		"*** {{.Service}}({{.CheckId}}) is now {{.StatusString}}" +
 		setIrcMode(ircBold) +
 		" on {{.NodeString}}" +
 		" - {{.TrimmedOutput}}"

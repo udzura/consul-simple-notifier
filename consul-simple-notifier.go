@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"text/template"
 )
 
@@ -125,49 +126,58 @@ func main() {
 	logger.Printf("input json is: %+v\n", input)
 
 	for _, content := range input {
-		err := notifyEmail(conf.mailBinPath, conf.emails, content)
-		if err != nil {
-			panic(err)
-		}
-		err = notifyIkachan(conf.ikachanUrl, conf.channel, content)
-		if err != nil {
-			panic(err)
-		}
+		var wg sync.WaitGroup
+		wg.Add((len(conf.emails) + 1))
+
+		go func(_wg *sync.WaitGroup, _content *consulAlert) {
+			for _, address := range conf.emails {
+				err := notifyEmail(conf.mailBinPath, address, _content, _wg)
+				if err != nil {
+					panic(err)
+				}
+			}
+		}(&wg, &content)
+		go func(_wg *sync.WaitGroup, _content *consulAlert) {
+			err = notifyIkachan(conf.ikachanUrl, conf.channel, _content, _wg)
+			if err != nil {
+				panic(err)
+			}
+		}(&wg, &content)
+		wg.Wait()
 	}
 }
 
-func notifyEmail(mainBinPath string, recipients []string, content consulAlert) error {
-	for _, address := range recipients {
-		var titleBuf, bodyBuf bytes.Buffer
-		titleTmpl := template.Must(template.New("emailTitle").Parse(mailTitleTemplate))
-		bodyTmpl := template.Must(template.New("emailBody").Parse(mailBodyTemplate))
-		err := titleTmpl.Execute(&titleBuf, &content)
-		err = bodyTmpl.Execute(&bodyBuf, &content)
-		if err != nil {
-			return err
-		}
-		title := titleBuf.String()
-
-		logger.Printf("Sending... %s to %s\n", title, address)
-		cmd := exec.Command(mainBinPath, "-s", title, address)
-		stdin, err := cmd.StdinPipe()
-		if err != nil {
-			return err
-		}
-
-		if err := cmd.Start(); err != nil {
-			return err
-		}
-
-		fmt.Fprint(stdin, bodyBuf.String())
-		stdin.Close()
-		logger.Printf("Send!\n")
-		cmd.Wait()
+func notifyEmail(mainBinPath, address string, content *consulAlert, wg *sync.WaitGroup) error {
+	var titleBuf, bodyBuf bytes.Buffer
+	titleTmpl := template.Must(template.New("emailTitle").Parse(mailTitleTemplate))
+	bodyTmpl := template.Must(template.New("emailBody").Parse(mailBodyTemplate))
+	err := titleTmpl.Execute(&titleBuf, &content)
+	err = bodyTmpl.Execute(&bodyBuf, &content)
+	if err != nil {
+		return err
 	}
+	title := titleBuf.String()
+
+	logger.Printf("Sending... %s to %s\n", title, address)
+	cmd := exec.Command(mainBinPath, "-s", title, address)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	fmt.Fprint(stdin, bodyBuf.String())
+	stdin.Close()
+	logger.Printf("Send!\n")
+	cmd.Wait()
+	wg.Done()
 	return nil
 }
 
-func notifyIkachan(ikachanUrl string, channel string, content consulAlert) error {
+func notifyIkachan(ikachanUrl string, channel string, content *consulAlert, wg *sync.WaitGroup) error {
 	joinUrl := fmt.Sprintf("%s/join", ikachanUrl)
 	noticeUrl := fmt.Sprintf("%s/notice", ikachanUrl)
 
@@ -197,6 +207,7 @@ func notifyIkachan(ikachanUrl string, channel string, content consulAlert) error
 	}
 	defer resp2.Body.Close()
 
+	wg.Done()
 	return nil
 }
 

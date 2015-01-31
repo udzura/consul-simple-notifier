@@ -38,13 +38,33 @@ func (c *consulAlert) TrimmedOutput() string {
 	return strings.TrimSpace(c.Output)
 }
 
+func (c *consulAlert) StatusString() string {
+	status := strings.ToUpper(c.Status)
+	switch c.Status {
+	case "passing":
+		return colorMsg(status, cGreen, cNone)
+	case "critical":
+		return colorMsg(status, cBlack, cRed)
+	default:
+		return colorMsg(status, cYellow, cNone)
+	}
+}
+
+func (c *consulAlert) NodeString() string {
+	return setIrcMode(ircUnderline) + c.Node + setIrcMode(ircCReset)
+}
+
 const (
-	version         = "0.0.1"
+	version = "0.0.1"
+)
+
+var (
 	ircBodyTemplate = setIrcMode(ircBold) +
 		"{{.Service}}({{.CheckId}}) is now {{.StatusString}}" +
 		setIrcMode(ircBold) +
-		"on {{.NodeString}}" +
+		" on {{.NodeString}}" +
 		" - {{.TrimmedOutput}}"
+
 	mailTitleTemplate = "Check {{.CheckId}} is now {{.Status}} on {{.Node}}"
 	mailBodyTemplate  = `
 {{.Service}}({{.CheckId}}) is now {{.Status}}
@@ -53,9 +73,7 @@ On node {{.Node}}
 Output is:
   {{.TrimmedOutput}}
 `
-)
 
-var (
 	logger = log.New(os.Stdout, "[consul-simple-notifier] ", log.LstdFlags)
 )
 
@@ -97,8 +115,14 @@ func main() {
 	logger.Printf("input json is: %+v\n", input)
 
 	for _, content := range input {
-		notifyEmail(conf.emails, content)
-		notifyIkachan(conf.ikachanUrl, conf.channel, content)
+		err := notifyEmail(conf.emails, content)
+		if err != nil {
+			panic(err)
+		}
+		err = notifyIkachan(conf.ikachanUrl, conf.channel, content)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -141,10 +165,10 @@ func notifyIkachan(ikachanUrl string, channel string, content consulAlert) error
 	values.Set("channel", channel)
 
 	resp1, err := http.PostForm(joinUrl, values)
-	defer resp1.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer resp1.Body.Close()
 
 	var bodyBuf bytes.Buffer
 	bodyTmpl := template.Must(template.New("ircBody").Parse(ircBodyTemplate))
@@ -158,10 +182,10 @@ func notifyIkachan(ikachanUrl string, channel string, content consulAlert) error
 
 	logger.Printf("Posted! %+v", values)
 	resp2, err := http.PostForm(noticeUrl, values)
-	defer resp2.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer resp2.Body.Close()
 
 	return nil
 }

@@ -39,8 +39,12 @@ func (c *consulAlert) TrimmedOutput() string {
 }
 
 const (
-	version           = "0.0.1"
-	ircBodyTemplate   = "{{.Service}}({{.CheckId}}) is now {{.Status}} on {{.Node}} - {{.TrimmedOutput}}"
+	version         = "0.0.1"
+	ircBodyTemplate = setIrcMode(ircBold) +
+		"{{.Service}}({{.CheckId}}) is now {{.StatusString}}" +
+		setIrcMode(ircBold) +
+		"on {{.NodeString}}" +
+		" - {{.TrimmedOutput}}"
 	mailTitleTemplate = "Check {{.CheckId}} is now {{.Status}} on {{.Node}}"
 	mailBodyTemplate  = `
 {{.Service}}({{.CheckId}}) is now {{.Status}}

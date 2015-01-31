@@ -16,8 +16,7 @@ const (
 type iColor int
 
 const (
-	cNone  iColor = -1
-	cWhite        = iota
+	cWhite iColor = iota
 	cBlack
 	cBlue
 	cGreen
@@ -33,6 +32,7 @@ const (
 	cPink
 	cGrey
 	cSilver
+	cNone = -1
 )
 
 func setIrcMode(mode ircMode) string {

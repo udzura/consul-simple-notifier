@@ -2,7 +2,7 @@
 
 A notification command for use with consul-alerts
 
-[![Build Status](https://travis-ci.org/udzura/consul-simple-notifier.svg)](https://travis-ci.org/udzura/consul-simple-notifier)
+[![Build Status](https://travis-ci.org/udzura/consul-simple-notifier.svg)](https://travis-ci.org/udzura/consul-simple-notifier) [![Released version](https://badge.fury.io/gh/udzura%2Fconsul-simple-notifier.svg)](http://badge.fury.io/gh/udzura%2Fconsul-simple-notifier)
 
 ## Settings
 

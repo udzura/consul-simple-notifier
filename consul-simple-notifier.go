@@ -67,7 +67,7 @@ var (
 		" on {{.NodeString}}" +
 		" - {{.TrimmedOutput}}"
 
-	mailTitleTemplate = "Check {{.CheckId}} is now {{.Status}} on {{.Node}}"
+	mailTitleTemplate = "[Consul] *** Check {{.CheckId}} is now {{.Status}} on {{.Node}} ***"
 	mailBodyTemplate  = `
 {{.Service}}({{.CheckId}}) is now {{.Status}}
 On node {{.Node}}

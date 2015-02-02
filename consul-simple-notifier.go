@@ -48,7 +48,7 @@ func (c *consulAlert) StatusString() string {
 	case "critical":
 		return colorMsg(status, cBlack, cRed)
 	default:
-		return colorMsg(status, cYellow, cNone)
+		return colorMsg(status, cBlack, cYellow)
 	}
 }
 
